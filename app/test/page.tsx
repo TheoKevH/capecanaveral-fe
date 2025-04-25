@@ -1,37 +1,93 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
+const [newBoardName, setNewBoardName] = useState("");
+const [error, setError] = useState("");
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { isLoggedIn } from "@/lib/auth";
 
 export default function TestPage() {
-  const [boards, setBoards] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [boards, setBoards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) return alert('No token found. Please login.')
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boards`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-
-        const data = await res.json()
-        setBoards(data)
-      } catch (err) {
-        console.error('Error fetching boards:', err)
-      } finally {
-        setLoading(false)
-      }
+    const token = localStorage.getItem("token");
+    if (!isLoggedIn()) {
+      router.push("/auth/login");
+      return;
     }
 
-    fetchBoards()
-  }, [])
+    const fetchBoards = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boards`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setBoards(data);
+      } catch (err) {
+        console.error("Error fetching boards:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBoards();
+  }, [router]);
 
   return (
     <main className="p-6">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setError("");
+          const token = localStorage.getItem("token");
+
+          try {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/boards`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ name: newBoardName }),
+              }
+            );
+
+            const data = await res.json();
+            if (!res.ok)
+              return setError(data.message || "Failed to create board");
+
+            // Add new board to state
+            setBoards((prev) => [...prev, data]);
+            setNewBoardName("");
+          } catch (err) {
+            console.error("Create board error:", err);
+            setError("Failed to create board");
+          }
+        }}
+        className="mb-6 space-y-2"
+      >
+        <input
+          type="text"
+          placeholder="Board name"
+          value={newBoardName}
+          onChange={(e) => setNewBoardName(e.target.value)}
+          className="border p-2 w-full"
+          required
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+        >
+          Create Board
+        </button>
+        {error && <p className="text-red-600">{error}</p>}
+      </form>
+
       <h1 className="text-2xl font-bold mb-4">Your Boards</h1>
 
       {loading ? (
@@ -43,12 +99,26 @@ export default function TestPage() {
           ) : (
             boards.map((board) => (
               <li key={board._id}>
-                <span className="font-medium">{board.name}</span>
+                <a
+                  href={`/board/${board._id}`}
+                  className="text-blue-600 underline"
+                >
+                  {board.name}
+                </a>
               </li>
             ))
           )}
         </ul>
       )}
+      <button
+        className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+        onClick={() => {
+          localStorage.removeItem("token");
+          router.push("/auth/login");
+        }}
+      >
+        Logout
+      </button>
     </main>
-  )
+  );
 }
