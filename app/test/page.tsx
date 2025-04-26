@@ -7,7 +7,12 @@ import { toast } from "react-hot-toast";
 import { ClipLoader } from "react-spinners";
 
 export default function TestPage() {
-  const [boards, setBoards] = useState<any[]>([]);
+  type Board = {
+    _id: string;
+    name: string;
+  };
+
+  const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [newBoardName, setNewBoardName] = useState("");
   const [error, setError] = useState("");
