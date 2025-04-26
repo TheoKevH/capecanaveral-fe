@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
+import { ClipLoader } from "react-spinners";
 
 type Task = {
   _id: string;
@@ -62,7 +63,14 @@ export default function BoardPage() {
     fetchBoard();
   }, [id, router]);
 
-  if (loading) return <div className="p-6">Loading board...</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <ClipLoader size={50} color="#2563eb" />
+      </div>
+    );
+  }
+
   if (!board) return <div className="p-6">Board not found</div>;
 
   return (

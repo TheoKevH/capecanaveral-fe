@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
+import { toast } from "react-hot-toast";
+import { ClipLoader } from "react-spinners";
 
 export default function TestPage() {
   const [boards, setBoards] = useState<any[]>([]);
@@ -63,9 +65,10 @@ export default function TestPage() {
             // Add new board to state
             setBoards((prev) => [...prev, data]);
             setNewBoardName("");
+            toast.success("Board created successfully!");
           } catch (err) {
-            console.error("Create board error:", err);
-            setError("Failed to create board");
+            console.error(err);
+            toast.error("Failed to create board");
           }
         }}
         className="mb-6 space-y-2"
@@ -90,7 +93,9 @@ export default function TestPage() {
       <h1 className="text-2xl font-bold mb-4">Your Boards</h1>
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="flex justify-center items-center h-40">
+          <ClipLoader size={50} color="#2563eb" />
+        </div>
       ) : (
         <ul className="list-disc ml-6 space-y-2">
           {boards.length === 0 ? (
