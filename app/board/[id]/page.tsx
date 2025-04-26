@@ -28,6 +28,12 @@ export default function BoardPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
   const [newColumnName, setNewColumnName] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editedTask, setEditedTask] = useState<{
+    title: string;
+    description?: string;
+    column?: string;
+  }>({ title: "" });
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -184,14 +190,137 @@ export default function BoardPage() {
               {column.tasks.map((task) => (
                 <div
                   key={task._id}
-                  className="bg-white p-3 rounded shadow-sm border"
+                  className="bg-white p-3 rounded shadow-sm border space-y-2"
                 >
-                  <p className="font-medium">{task.title}</p>
-                  {task.description && (
-                    <p className="text-sm text-gray-600">{task.description}</p>
+                  {editingTaskId === task._id ? (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const token = localStorage.getItem("token");
+
+                        try {
+                          const res = await fetch(
+                            `${process.env.NEXT_PUBLIC_API_URL}/tasks/${task._id}`,
+                            {
+                              method: "PUT",
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${token}`,
+                              },
+                              body: JSON.stringify(editedTask),
+                            }
+                          );
+
+                          const updatedTask = await res.json();
+                          setBoard((prev) => {
+                            if (!prev) return prev;
+                            return {
+                              ...prev,
+                              columns: prev.columns.map((col) => {
+                                // Remove from old column
+                                if (col.tasks.some((t) => t._id === task._id)) {
+                                  col.tasks = col.tasks.filter(
+                                    (t) => t._id !== task._id
+                                  );
+                                }
+                                // If column is the new one, add it
+                                if (col._id === updatedTask.column) {
+                                  col.tasks.push(updatedTask);
+                                }
+                                return col;
+                              }),
+                            };
+                          });
+                          setEditingTaskId(null);
+                        } catch (err) {
+                          console.error("Failed to update task:", err);
+                        }
+                      }}
+                      className="space-y-2"
+                    >
+                      <input
+                        type="text"
+                        value={editedTask.title}
+                        onChange={(e) =>
+                          setEditedTask({
+                            ...editedTask,
+                            title: e.target.value,
+                          })
+                        }
+                        placeholder="Task title"
+                        className="border p-2 w-full"
+                        required
+                      />
+                      <input
+                        type="text"
+                        value={editedTask.description || ""}
+                        onChange={(e) =>
+                          setEditedTask({
+                            ...editedTask,
+                            description: e.target.value,
+                          })
+                        }
+                        placeholder="Description"
+                        className="border p-2 w-full"
+                      />
+                      <select
+                        value={editedTask.column || column._id}
+                        onChange={(e) =>
+                          setEditedTask({
+                            ...editedTask,
+                            column: e.target.value,
+                          })
+                        }
+                        className="border p-2 w-full"
+                      >
+                        {board.columns.map((col) => (
+                          <option key={col._id} value={col._id}>
+                            {col.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="bg-gray-400 text-white px-3 py-1 rounded text-sm"
+                          onClick={() => setEditingTaskId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <p className="font-medium">{task.title}</p>
+                      {task.description && (
+                        <p className="text-sm text-gray-600">
+                          {task.description}
+                        </p>
+                      )}
+                      <button
+                        className="text-blue-600 underline text-xs mt-2"
+                        onClick={() => {
+                          setEditingTaskId(task._id);
+                          setEditedTask({
+                            title: task.title,
+                            description: task.description || "",
+                            column: column._id,
+                          });
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </>
                   )}
                 </div>
               ))}
+
               {column.tasks.length === 0 && (
                 <p className="text-sm text-gray-500">No tasks</p>
               )}
