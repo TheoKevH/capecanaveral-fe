@@ -27,6 +27,7 @@ export default function BoardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newColumnName, setNewColumnName] = useState("");
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -61,6 +62,55 @@ export default function BoardPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">{board.name}</h1>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const token = localStorage.getItem("token");
+
+          try {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/columns/${board._id}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ name: newColumnName }),
+              }
+            );
+
+            const newColumn = await res.json();
+            setBoard((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                columns: [...prev.columns, { ...newColumn, tasks: [] }],
+              };
+            });
+            setNewColumnName("");
+          } catch (err) {
+            console.error("Failed to create column:", err);
+          }
+        }}
+        className="mb-6 flex gap-2"
+      >
+        <input
+          type="text"
+          placeholder="New column name"
+          value={newColumnName}
+          onChange={(e) => setNewColumnName(e.target.value)}
+          className="border p-2 flex-1"
+          required
+        />
+        <button
+          type="submit"
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Add Column
+        </button>
+      </form>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {board.columns.map((column) => (
           <div key={column._id} className="bg-gray-100 rounded-lg p-4 shadow">

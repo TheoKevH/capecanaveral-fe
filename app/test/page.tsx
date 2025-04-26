@@ -1,8 +1,5 @@
 "use client";
 
-const [newBoardName, setNewBoardName] = useState("");
-const [error, setError] = useState("");
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
@@ -10,6 +7,8 @@ import { isLoggedIn } from "@/lib/auth";
 export default function TestPage() {
   const [boards, setBoards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newBoardName, setNewBoardName] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
